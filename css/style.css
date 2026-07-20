@@ -148,17 +148,17 @@ img {
 }
 
 .botao-app {
-    display: inline-flex;
+    display: flex;
+    width: fit-content;
     justify-content: center;
     align-items: center;
-    margin-top: 1rem;
+    margin: 1rem auto 0;
     padding: 0.6rem 1rem;
     background-color: var(--primary-blue);
     color: #fff;
     border-radius: 8px;
     font-size: 0.9rem;
     font-weight: 600;
-    margin-left: 50px;
 }
 
 .botao-app:hover {
