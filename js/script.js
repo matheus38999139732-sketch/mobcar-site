@@ -1,71 +1,104 @@
-document.addEventListener('DOMContentLoaded', () => {
-    
-    
-    // MENU MOBILE (HAMBÚRGUER)
-    const menuToggle = document.querySelector('.botao-menu');
-    const navbar = document.querySelector('.barra-navegacao');
+document.addEventListener("DOMContentLoaded", () => {
+    const header = document.querySelector(".cabecalho-principal");
+    const menuToggle = document.querySelector(".botao-menu");
+    const navbar = document.querySelector(".barra-navegacao");
+    const progress = document.querySelector(".scroll-progress");
+    const navLinks = document.querySelectorAll(".links-navegacao a");
+    const sections = [...document.querySelectorAll("main section[id]")];
 
+    // Header + barra de progresso
+    const updateScrollUI = () => {
+        const y = window.scrollY;
+        header?.classList.toggle("scrolled", y > 20);
+        if (progress) {
+            const max = document.documentElement.scrollHeight - window.innerHeight;
+            progress.style.width = `${max > 0 ? (y / max) * 100 : 0}%`;
+        }
+    };
+    window.addEventListener("scroll", updateScrollUI, { passive: true });
+    updateScrollUI();
+
+    // Menu mobile
     if (menuToggle && navbar) {
-        menuToggle.addEventListener('click', () => {
-            navbar.classList.toggle('ativa');
-            
-            // Efeito visual simples de rotação nas barras do botão
-            const bars = menuToggle.querySelectorAll('.barra');
-            bars.forEach(bar => bar.classList.toggle('open'));
+        menuToggle.addEventListener("click", () => {
+            const active = navbar.classList.toggle("ativa");
+            menuToggle.classList.toggle("open", active);
+            menuToggle.setAttribute("aria-expanded", String(active));
+            menuToggle.setAttribute("aria-label", active ? "Fechar menu" : "Abrir menu");
         });
+
+        navLinks.forEach(link => link.addEventListener("click", () => {
+            navbar.classList.remove("ativa");
+            menuToggle.classList.remove("open");
+            menuToggle.setAttribute("aria-expanded", "false");
+        }));
     }
 
-    // Fechar menu mobile ao clicar em um link
-    const navLinksList = document.querySelectorAll('.links-navegacao a');
-    navLinksList.forEach(link => {
-        link.addEventListener('click', () => {
-            if (navbar.classList.contains('ativa')) {
-                navbar.classList.remove('ativa');
-            }
+    // Seção ativa no menu
+    const setActiveSection = () => {
+        const y = window.scrollY + 150;
+        let current = sections[0]?.id;
+        sections.forEach(section => {
+            if (y >= section.offsetTop) current = section.id;
         });
-    });
-
-    
-    const sections = document.querySelectorAll('section[id]');
-    
-    window.addEventListener('scroll', () => {
-        let scrollY = window.pageYOffset;
-        
-        sections.forEach(current => {
-            const sectionHeight = current.offsetHeight;
-            // Ajuste de offset para o topo fixo do header
-            const sectionTop = current.offsetTop - 120; 
-            const sectionId = current.getAttribute('id');
-            
-            if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-                document.querySelector('.links-navegacao a[href*=' + sectionId + ']')?.classList.add('ativo');
-            } else {
-                document.querySelector('.links-navegacao a[href*=' + sectionId + ']')?.classList.remove('ativo');
-            }
+        navLinks.forEach(link => {
+            link.classList.toggle("ativo", link.getAttribute("href") === `#${current}` || link.getAttribute("href") === `index.html#${current}`);
         });
-    });
+    };
+    window.addEventListener("scroll", setActiveSection, { passive: true });
+    setActiveSection();
 
-    const contactForm = document.getElementById('mobcar-form');
-    
-    if (contactForm) {
-        contactForm.addEventListener('submit', (e) => {
-            
-            // Capturando dados inseridos
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const message = document.getElementById('message').value;
-            
-            // Validação simples local (opcional)
-            if (name && email && message) {
-                // Aqui entraria a integração com sua API/Back-end
-                console.log('Formulário enviado com sucesso!', { name, email, message });
-                
-                // Feedback visual temporário de sucesso
-                alert(`Obrigado pelo contato, ${name}! Sua mensagem foi enviada.`);
-                
-                // Limpa o formulário
-                contactForm.reset();
-            }
+    // Entrada suave dos elementos
+    const revealItems = document.querySelectorAll(".reveal");
+    if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add("visible");
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12 });
+        revealItems.forEach(el => observer.observe(el));
+    } else {
+        revealItems.forEach(el => el.classList.add("visible"));
+    }
+
+    // Contadores da primeira dobra
+    const counters = document.querySelectorAll("[data-counter]");
+    const counterObserver = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const el = entry.target;
+            const target = Number(el.dataset.counter);
+            const suffix = el.dataset.suffix || "";
+            const duration = 1200;
+            const start = performance.now();
+
+            const tick = now => {
+                const progressValue = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progressValue, 3);
+                el.textContent = `${Math.round(target * eased)}${suffix}`;
+                if (progressValue < 1) requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+            counterObserver.unobserve(el);
+        });
+    }, { threshold: 0.7 }) : null;
+
+    counters.forEach(el => counterObserver?.observe(el));
+
+    // Formulário: evita o alerta antigo e mostra feedback no próprio botão.
+    const form = document.getElementById("mobcar-form");
+    if (form) {
+        form.addEventListener("submit", () => {
+            const button = form.querySelector(".botao-enviar");
+            if (!button) return;
+            button.disabled = true;
+            button.innerHTML = "Enviando... <span>⌁</span>";
+            setTimeout(() => {
+                button.innerHTML = "Mensagem enviada <span>✓</span>";
+            }, 900);
         });
     }
 });
